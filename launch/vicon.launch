@@ -22,14 +22,11 @@
 <!-- If we want to specify each object seperately and if we only want to publish specific objects-->
 <arg name="only_use_object_specific" default="true"/>
 
-<arg name="object_names" default="[drone1, rectangle2x1_0, rectangle2x1_1]"/>
-<arg name="object_msg_types" default="[geometry_msgs/PoseStamped, geometry_msgs/TransformStamped, geometry_msgs/TransformStamped]"/>
-<arg name="object_frame_ids" default="[map, map, map]"/>
-<arg name="object_publish_topics" default="[/mavros/vision_pose/pose, /obstacles/rectangle2x1_0, /obstacles/rectangle2x1_1]"/>
-<arg name="object_frequency_divider" default="[1, 100, 100]"/>
-
-
-
+<arg name="object_names" default="[falcon1]"/>
+<arg name="object_msg_types" default="[geometry_msgs/PoseStamped]"/>
+<arg name="object_frame_ids" default="[map]"/>
+<arg name="object_publish_topics" default="[/mocap/falcon1/pose]"/>
+<arg name="object_frequency_divider" default="[1]"/>
 
 <node pkg="vicon_bridge" type="vicon_bridge" name="vicon" output="screen" >
   <param name="stream_mode" value="ServerPush"/>

@@ -53,9 +53,13 @@
 #include <vicon_bridge/segment_publisher_posewithcovariancestamped.h>
 #include <vicon_bridge/segment_publisher_transformstamped.h>
 
+#include <yaml-cpp/yaml.h>
 
 
-
+struct CalibrationData {
+  tf::Vector3 translation;
+  tf::Quaternion rotation;
+};
 
 ViconReceiver::ViconReceiver() :
     nh_priv("~")
@@ -113,6 +117,8 @@ ViconReceiver::ViconReceiver() :
   nh_priv.param("object_specific/object_publish_topics", object_publish_topics, object_publish_topics);
   nh_priv.param("object_specific/object_frequency_divider", object_frequency_divider, object_frequency_divider);
 
+  // Load calibration data
+  calibration_data_ = loadCalibrationData(object_names);
 
   // Check if the sizes of the vectors are equal
   if (!(object_names.size() == object_msg_types.size() && object_msg_types.size() == object_frame_ids.size() && object_frame_ids.size() == object_publish_topics.size() && object_publish_topics.size() == object_frequency_divider.size()))
@@ -430,22 +436,53 @@ void ViconReceiver::process_subjects(const ros::Time& frame_time)
         continue;
       }
 
-      if (publish_tf_)
-      {
-        tf::Transform transform;
-        transform.setOrigin(tf::Vector3(trans.Translation[0] / 1000, trans.Translation[1] / 1000,
-                                              trans.Translation[2] / 1000));
-        transform.setRotation(tf::Quaternion(quat.Rotation[0], quat.Rotation[1], quat.Rotation[2],
-                                                        quat.Rotation[3]));
-        transforms.push_back(tf::StampedTransform(transform, frame_time, frame_id_all_, name));
-      }
+      // Apply calibration if available
+      auto calib_it = calibration_data_.find(subject_name);
+      if (calib_it != calibration_data_.end()) {
+          // Calibration data available, apply it
+          tf::Transform calib_transform;
+          calib_transform.setOrigin(calib_it->second.translation);
+          calib_transform.setRotation(calib_it->second.rotation);
 
-      double translation[3] = {trans.Translation[0] / 1000, trans.Translation[1] / 1000,
-                                              trans.Translation[2] / 1000};
-      double rotation[4] = {quat.Rotation[0], quat.Rotation[1], quat.Rotation[2],
-                                                        quat.Rotation[3]};
-      
-      pub_it->second->publishMsg(frame_time, translation, rotation);
+          tf::Transform current_transform;
+          current_transform.setOrigin(tf::Vector3(trans.Translation[0] / 1000, trans.Translation[1] / 1000, trans.Translation[2] / 1000));
+          current_transform.setRotation(tf::Quaternion(quat.Rotation[0], quat.Rotation[1], quat.Rotation[2], quat.Rotation[3]));
+
+          tf::Transform corrected_transform = calib_transform * current_transform;
+          tf::Vector3 corrected_translation = corrected_transform.getOrigin();
+          tf::Quaternion corrected_rotation = corrected_transform.getRotation();
+
+          double translation[3] = {corrected_translation.x(), corrected_translation.y(), corrected_translation.z()};
+          double rotation[4] = {corrected_rotation.x(), corrected_rotation.y(), corrected_rotation.z(), corrected_rotation.w()};
+
+          pub_it->second->publishMsg(frame_time, translation, rotation);
+
+          if (publish_tf_) {
+              tf::Transform transform;
+              transform.setOrigin(corrected_translation);
+              transform.setRotation(corrected_rotation);
+              transforms.push_back(tf::StampedTransform(transform, frame_time, frame_id_all_, name));
+          }
+          
+      } else {
+          // No calibration data available, publish original pose
+          double translation[3] = {trans.Translation[0] / 1000, trans.Translation[1] / 1000,
+                                                  trans.Translation[2] / 1000};
+          double rotation[4] = {quat.Rotation[0], quat.Rotation[1], quat.Rotation[2],
+                                                            quat.Rotation[3]};
+          
+          pub_it->second->publishMsg(frame_time, translation, rotation);
+
+          if (publish_tf_)
+          {
+            tf::Transform transform;
+            transform.setOrigin(tf::Vector3(trans.Translation[0] / 1000, trans.Translation[1] / 1000,
+                                                  trans.Translation[2] / 1000));
+            transform.setRotation(tf::Quaternion(quat.Rotation[0], quat.Rotation[1], quat.Rotation[2],
+                                                            quat.Rotation[3]));
+            transforms.push_back(tf::StampedTransform(transform, frame_time, frame_id_all_, name));
+          }
+      }
     }
   }
 
@@ -592,6 +629,27 @@ bool ViconReceiver::grabPoseCallback(vicon_bridge::viconGrabPose::Request& req, 
   return true;
 }
 
+std::unordered_map<std::string, ViconReceiver::CalibrationData> ViconReceiver::loadCalibrationData(const std::vector<std::string>& object_names) {
+    std::unordered_map<std::string, CalibrationData> calibration_data;
+    for (const auto& object_name : object_names) {
+        std::string yaml_file = object_name + ".yaml";
+        try {
+            YAML::Node config = YAML::LoadFile(yaml_file);
+            CalibrationData data;
+            data.translation.setX(config["position"]["x"].as<double>());
+            data.translation.setY(config["position"]["y"].as<double>());
+            data.translation.setZ(config["position"]["z"].as<double>());
+            data.rotation.setX(config["orientation"]["x"].as<double>());
+            data.rotation.setY(config["orientation"]["y"].as<double>());
+            data.rotation.setZ(config["orientation"]["z"].as<double>());
+            data.rotation.setW(config["orientation"]["w"].as<double>());
+            calibration_data[object_name] = data;
+        } catch (const YAML::Exception& e) {
+            ROS_WARN("Could not load calibration data for object '%s': %s", object_name.c_str(), e.what());
+        }
+    }
+    return calibration_data;
+}
 // bool ViconReceiver::calibrateSegmentCallback(vicon_bridge::viconCalibrateSegment::Request& req,
 //                               vicon_bridge::viconCalibrateSegment::Response& resp)
 // {

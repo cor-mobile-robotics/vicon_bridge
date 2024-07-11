@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Boost REQUIRED COMPONENTS thread date_time)
+find_package(yaml-cpp REQUIRED)
 
 # Generate messages and services
 add_message_files(FILES
@@ -60,10 +61,12 @@ add_executable(vicon_bridge
 target_link_libraries(vicon_bridge
     vicon_sdk
     ${catkin_LIBRARIES}
+    yaml-cpp
 )
 add_dependencies(vicon_bridge ${PROJECT_NAME}_gencpp)
 
 add_executable(calibrate src/calibrate_segment.cpp)
+target_link_libraries(calibrate ${catkin_LIBRARIES} yaml-cpp)
 target_link_libraries(calibrate ${catkin_LIBRARIES})
 add_dependencies(calibrate ${PROJECT_NAME}_gencpp)
 
