@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     tf
     diagnostic_updater
+    rospy
 )
 
 find_package(Boost REQUIRED COMPONENTS thread date_time)
@@ -47,6 +48,8 @@ include_directories(
     vicon_sdk             # For StreamCommon, required by ViconSDK
     include
     ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS} # Ensure Boost includes are found    
+    ${YAML_CPP_INCLUDE_DIRS} # Ensure yaml-cpp includes are found
 )
 
 
@@ -67,7 +70,6 @@ add_dependencies(vicon_bridge ${PROJECT_NAME}_gencpp)
 
 add_executable(calibrate src/calibrate_segment.cpp)
 target_link_libraries(calibrate ${catkin_LIBRARIES} yaml-cpp)
-target_link_libraries(calibrate ${catkin_LIBRARIES})
 add_dependencies(calibrate ${PROJECT_NAME}_gencpp)
 
 add_executable(tf_distort src/tf_distort.cpp)
@@ -85,3 +87,7 @@ install(TARGETS vicon_sdk vicon_bridge calibrate tf_distort testclient
 
 install(DIRECTORY launch cfg DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
+install(PROGRAMS
+  src/mocap_object_calibration.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

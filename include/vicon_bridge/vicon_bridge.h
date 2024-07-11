@@ -138,6 +138,7 @@ private:
       tf::Quaternion rotation;
   };
 
+  std::string calibration_folder_path_="../calibrations/";
   std::unordered_map<std::string, CalibrationData> calibration_data_;
 
   std::unordered_map<std::string, CalibrationData> loadCalibrationData(const std::vector<std::string>& object_names);

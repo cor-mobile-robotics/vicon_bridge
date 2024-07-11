@@ -37,6 +37,7 @@
   <param name="publish_transform" value="$(arg publish_tf)"/>
   <param name="reset_z_axis" value="$(arg reset_z_axis)"/>
   <param name="only_use_object_specific" value="$(arg only_use_object_specific)"/>
+  <param name="calibration_folder_path" value="$(find vicon_bridge)/calibrations/"/>
   <rosparam param="object_specific/object_names" subst_value="True">$(arg object_names)</rosparam>
   <rosparam param="object_specific/object_msg_types" subst_value="True">$(arg object_msg_types)</rosparam>
   <rosparam param="object_specific/object_frame_ids" subst_value="True">$(arg object_frame_ids)</rosparam>

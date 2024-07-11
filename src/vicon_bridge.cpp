@@ -89,6 +89,7 @@ ViconReceiver::ViconReceiver() :
   nh_priv.param("frame_id", frame_id_all_, frame_id_all_);
   nh_priv.param("frequency_divider", frequency_divider_all_, frequency_divider_all_);
   nh_priv.param("reset_z_axis", reset_z_axis_, reset_z_axis_);
+  nh_priv.param("calibration_folder_path", calibration_folder_path_, calibration_folder_path_);
 
   vicon_client_.GetFrame();
   double client_framerate = vicon_client_.GetFrameRate().FrameRateHz;
@@ -632,7 +633,9 @@ bool ViconReceiver::grabPoseCallback(vicon_bridge::viconGrabPose::Request& req, 
 std::unordered_map<std::string, ViconReceiver::CalibrationData> ViconReceiver::loadCalibrationData(const std::vector<std::string>& object_names) {
     std::unordered_map<std::string, CalibrationData> calibration_data;
     for (const auto& object_name : object_names) {
-        std::string yaml_file = object_name + ".yaml";
+        std::string yaml_file = calibration_folder_path_ + "/" + object_name + ".yaml";
+        std::cout << calibration_folder_path_ << std::endl;
+        
         try {
             YAML::Node config = YAML::LoadFile(yaml_file);
             CalibrationData data;
