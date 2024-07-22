@@ -61,9 +61,9 @@ class MocapObjectCalibration:
 
     def calculate_relative_pose(self):
         translation = [
-             self.object_pose_avg.position.x - self.calibration_board_pose_avg.position.x,
-             self.object_pose_avg.position.y - self.calibration_board_pose_avg.position.y,
-             self.object_pose_avg.position.z - self.calibration_board_pose_avg.position.z
+             self.calibration_board_pose_avg.position.x - self.object_pose_avg.position.x,
+             self.calibration_board_pose_avg.position.y - self.object_pose_avg.position.y,
+             self.calibration_board_pose_avg.position.z - self.object_pose_avg.position.z
         ]
 
         quat_calibration = [
@@ -81,7 +81,8 @@ class MocapObjectCalibration:
         ]
 
         relative_quat = tf.transformations.quaternion_multiply(
-            tf.transformations.quaternion_inverse(quat_calibration), quat_object
+            quat_calibration,
+            tf.transformations.quaternion_inverse(quat_object)
         )
 
         return translation, relative_quat

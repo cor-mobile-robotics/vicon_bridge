@@ -133,6 +133,8 @@ private:
   bool object_specific_only_ = false;
   bool reset_z_axis_ = false;
 
+  bool load_calibration_data_ = true;
+  
   struct CalibrationData {
       tf::Vector3 translation;
       tf::Quaternion rotation;

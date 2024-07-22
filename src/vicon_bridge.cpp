@@ -119,7 +119,8 @@ ViconReceiver::ViconReceiver() :
   nh_priv.param("object_specific/object_frequency_divider", object_frequency_divider, object_frequency_divider);
 
   // Load calibration data
-  calibration_data_ = loadCalibrationData(object_names);
+  nh_priv.param("load_calibration_data", load_calibration_data_, load_calibration_data_);
+  if (load_calibration_data_)  calibration_data_ = loadCalibrationData(object_names);
 
   // Check if the sizes of the vectors are equal
   if (!(object_names.size() == object_msg_types.size() && object_msg_types.size() == object_frame_ids.size() && object_frame_ids.size() == object_publish_topics.size() && object_publish_topics.size() == object_frequency_divider.size()))
@@ -449,9 +450,8 @@ void ViconReceiver::process_subjects(const ros::Time& frame_time)
           current_transform.setOrigin(tf::Vector3(trans.Translation[0] / 1000, trans.Translation[1] / 1000, trans.Translation[2] / 1000));
           current_transform.setRotation(tf::Quaternion(quat.Rotation[0], quat.Rotation[1], quat.Rotation[2], quat.Rotation[3]));
 
-          tf::Transform corrected_transform = calib_transform * current_transform;
-          tf::Vector3 corrected_translation = corrected_transform.getOrigin();
-          tf::Quaternion corrected_rotation = corrected_transform.getRotation();
+          tf::Quaternion corrected_rotation = calib_transform.getRotation() * current_transform.getRotation();
+          tf::Vector3 corrected_translation = calib_transform.getOrigin() + current_transform.getOrigin();
 
           double translation[3] = {corrected_translation.x(), corrected_translation.y(), corrected_translation.z()};
           double rotation[4] = {corrected_rotation.x(), corrected_rotation.y(), corrected_rotation.z(), corrected_rotation.w()};
@@ -634,7 +634,6 @@ std::unordered_map<std::string, ViconReceiver::CalibrationData> ViconReceiver::l
     std::unordered_map<std::string, CalibrationData> calibration_data;
     for (const auto& object_name : object_names) {
         std::string yaml_file = calibration_folder_path_ + "/" + object_name + ".yaml";
-        std::cout << calibration_folder_path_ << std::endl;
         
         try {
             YAML::Node config = YAML::LoadFile(yaml_file);
