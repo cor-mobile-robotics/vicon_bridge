@@ -16,6 +16,8 @@
 // Vicon SDK
 #include <ViconDataStreamSDK_CPP/DataStreamClient.h>
 
+#include <unordered_map>
+
 using namespace ViconDataStreamSDK::CPP;
 
 std::string Adapt(const Direction::Enum i_Direction)
@@ -130,6 +132,18 @@ private:
   bool publish_markers_ = false;
   bool object_specific_only_ = false;
   bool reset_z_axis_ = false;
+
+  bool load_calibration_data_ = true;
+  
+  struct CalibrationData {
+      tf::Vector3 translation;
+      tf::Quaternion rotation;
+  };
+
+  std::string calibration_folder_path_="../calibrations/";
+  std::unordered_map<std::string, CalibrationData> calibration_data_;
+
+  std::unordered_map<std::string, CalibrationData> loadCalibrationData(const std::vector<std::string>& object_names);
 
   std::map<std::string, std::unique_ptr<SegmentPublisher>> segment_publishers_;
 
