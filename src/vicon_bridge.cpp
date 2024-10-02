@@ -646,6 +646,7 @@ std::unordered_map<std::string, ViconReceiver::CalibrationData> ViconReceiver::l
             data.rotation.setZ(config["orientation"]["z"].as<double>());
             data.rotation.setW(config["orientation"]["w"].as<double>());
             calibration_data[object_name] = data;
+            ROS_INFO("Load calibration data for object '%s'", object_name.c_str());
         } catch (const YAML::Exception& e) {
             ROS_WARN("Could not load calibration data for object '%s': %s", object_name.c_str(), e.what());
         }
