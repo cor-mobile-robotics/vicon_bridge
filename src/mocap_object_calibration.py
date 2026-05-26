@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import tf
@@ -60,12 +60,6 @@ class MocapObjectCalibration:
         return avg_pose
 
     def calculate_relative_pose(self):
-        translation = [
-             self.calibration_board_pose_avg.position.x - self.object_pose_avg.position.x,
-             self.calibration_board_pose_avg.position.y - self.object_pose_avg.position.y,
-             self.calibration_board_pose_avg.position.z - self.object_pose_avg.position.z
-        ]
-
         quat_calibration = [
             self.calibration_board_pose_avg.orientation.x,
             self.calibration_board_pose_avg.orientation.y,
@@ -80,12 +74,25 @@ class MocapObjectCalibration:
             self.object_pose_avg.orientation.w
         ]
 
-        relative_quat = tf.transformations.quaternion_multiply(
-            quat_calibration,
-            tf.transformations.quaternion_inverse(quat_object)
-        )
+        t_world_cal = np.array([
+            self.calibration_board_pose_avg.position.x,
+            self.calibration_board_pose_avg.position.y,
+            self.calibration_board_pose_avg.position.z
+        ])
+        t_world_obj = np.array([
+            self.object_pose_avg.position.x,
+            self.object_pose_avg.position.y,
+            self.object_pose_avg.position.z
+        ])
 
-        return translation, relative_quat
+        # Build object->calibration rigid transform: T_obj_cal = inv(T_world_obj) * T_world_cal.
+        q_obj_inv = tf.transformations.quaternion_inverse(quat_object)
+        relative_quat = tf.transformations.quaternion_multiply(q_obj_inv, quat_calibration)
+
+        rot_obj_inv = tf.transformations.quaternion_matrix(q_obj_inv)[:3, :3]
+        relative_translation = np.dot(rot_obj_inv, (t_world_cal - t_world_obj))
+
+        return relative_translation, relative_quat
 
     def save_relative_pose(self, translation, orientation):
         def convert_to_python_type(value):

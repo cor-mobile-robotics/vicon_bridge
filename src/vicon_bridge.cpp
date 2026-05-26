@@ -441,7 +441,8 @@ void ViconReceiver::process_subjects(const ros::Time& frame_time)
       // Apply calibration if available
       auto calib_it = calibration_data_.find(subject_name);
       if (calib_it != calibration_data_.end()) {
-          // Calibration data available, apply it
+          // Calibration data stores object->calibrated-frame transform.
+          // Compose it with current world->object to get world->calibrated-frame.
           tf::Transform calib_transform;
           calib_transform.setOrigin(calib_it->second.translation);
           calib_transform.setRotation(calib_it->second.rotation);
@@ -450,8 +451,9 @@ void ViconReceiver::process_subjects(const ros::Time& frame_time)
           current_transform.setOrigin(tf::Vector3(trans.Translation[0] / 1000, trans.Translation[1] / 1000, trans.Translation[2] / 1000));
           current_transform.setRotation(tf::Quaternion(quat.Rotation[0], quat.Rotation[1], quat.Rotation[2], quat.Rotation[3]));
 
-          tf::Quaternion corrected_rotation = calib_transform.getRotation() * current_transform.getRotation();
-          tf::Vector3 corrected_translation = calib_transform.getOrigin() + current_transform.getOrigin();
+          tf::Transform corrected_transform = current_transform * calib_transform;
+          tf::Quaternion corrected_rotation = corrected_transform.getRotation();
+          tf::Vector3 corrected_translation = corrected_transform.getOrigin();
 
           double translation[3] = {corrected_translation.x(), corrected_translation.y(), corrected_translation.z()};
           double rotation[4] = {corrected_rotation.x(), corrected_rotation.y(), corrected_rotation.z(), corrected_rotation.w()};
